@@ -1,3 +1,5 @@
+import fs from 'fs'
+
 const pkpThemePlugin = ({configFile}) => ({
   name: 'pkp-vite',
   /**
@@ -44,6 +46,4 @@ const pkpThemePlugin = ({configFile}) => ({
   },
 })
 
-export default {
-  pkpThemePlugin
-}
+export default pkpThemePlugin
