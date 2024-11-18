@@ -2,11 +2,11 @@ import fs from 'fs'
 
 const pkpThemePlugin = ({configFile}) => ({
   name: 'pkp-vite',
-  /**
-   * Create config file when Vite's server is
-   * initialized
-   */
   configureServer(server) {
+    /**
+     * Create config file when Vite's server is
+     * initialized
+     */
     server.httpServer?.once('listening', () => {
       const timer = setInterval(() => {
         const urls = server?.resolvedUrls
@@ -15,6 +15,18 @@ const pkpThemePlugin = ({configFile}) => ({
           clearInterval(timer)
         }
       }, 100)
+    })
+
+    /**
+     * Reload when a .tpl file is changed
+     */
+    const { ws, watcher } = server
+    watcher.on('change', file => {
+      if (file.endsWith('.tpl')) {
+        ws.send({
+          type: 'full-reload'
+        })
+      }
     })
   },
 
