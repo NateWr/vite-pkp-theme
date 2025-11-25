@@ -2,11 +2,13 @@ import fs from 'fs'
 
 const pkpThemePlugin = ({configFile}) => ({
   name: 'pkp-vite',
+
+  /**
+   * Create config file when Vite's server is
+   * initialized and remove it when it is shut down
+   */
   configureServer(server) {
-    /**
-     * Create config file when Vite's server is
-     * initialized
-     */
+    let exitHandlersBound = false
     server.httpServer?.once('listening', () => {
       const timer = setInterval(() => {
         const urls = server?.resolvedUrls
@@ -17,43 +19,31 @@ const pkpThemePlugin = ({configFile}) => ({
       }, 100)
     })
 
-    /**
-     * Reload when a .tpl file is changed
-     */
-    const { ws, watcher } = server
-    watcher.on('change', file => {
-      if (file.endsWith('.tpl')) {
-        ws.send({
-          type: 'full-reload'
-        })
+    if (!exitHandlersBound) {
+      const remove = () => {
+        if (fs.existsSync(configFile)) {
+          fs.rmSync(configFile)
+        }
       }
-    })
-  },
 
-  /**
-   * Remove server file when Vite's server
-   * is shut down
-   */
-  buildEnd() {
-    if (fs.existsSync(configFile)) {
-      fs.unlinkSync(configFile)
+      process.on('exit', remove)
+      process.on('SIGINT', () => process.exit())
+      process.on('SIGTERM', () => process.exit())
+      process.on('SIGHUP', () => process.exit())
+
+      exitHandlersBound = true
     }
   },
 
   /**
-   * Remove server file before production
-   * build
-   *
-   * A stray server file may exist if Vite's
-   * server was shut down unexpectedly. For
-   * example, if CTRL+C was used to exit the
-   * terminal process.
+   * Reload when a .tpl file has changed
    */
-  configResolved({ mode }) {
-    if (mode === 'production') {
-      if (fs.existsSync(configFile)) {
-        fs.unlinkSync(configFile)
-      }
+  handleHotUpdate({file, server}) {
+    if (file.endsWith('.tpl')) {
+      server.ws.send({
+        type: 'full-reload',
+        path: '*',
+      })
     }
   },
 })
